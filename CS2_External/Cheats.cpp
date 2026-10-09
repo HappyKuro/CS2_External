@@ -3,6 +3,12 @@
 #include "MenuConfig.hpp"
 #include "Utils/ConfigMenu.hpp"
 #include "Utils/ConfigSaver.hpp"
+#include "Utils/Debug.hpp"
+#include "Utils/PlayerInfo.hpp"
+#include "Utils/Overlays.hpp"
+#include "Utils/SigScan.hpp"
+#include "Utils/HitSound.hpp"
+#include "Utils/TextScale.hpp"
 
 void Cheats::Menu()
 {
@@ -19,6 +25,12 @@ void Cheats::Menu()
 		// esp menu
 		if (ImGui::BeginTabItem("ESP"))
 		{
+			Gui.MyCheckBox("TeammateESP", &MenuConfig::ShowTeammateESP);
+			ImGui::SameLine();
+			ImGui::ColorEdit4("##TeamBoxColor", reinterpret_cast<float*>(&MenuConfig::TeamBoxColor), ImGuiColorEditFlags_NoInputs);
+			ImGui::SameLine();
+			ImGui::ColorEdit4("##TeamBoneColor", reinterpret_cast<float*>(&MenuConfig::TeamBoneColor), ImGuiColorEditFlags_NoInputs);
+
 			Gui.MyCheckBox("BoxESP", &MenuConfig::ShowBoxESP);
 			ImGui::SameLine();
 			ImGui::ColorEdit4("##BoxColor", reinterpret_cast<float*>(&MenuConfig::BoxColor), ImGuiColorEditFlags_NoInputs);
@@ -67,6 +79,8 @@ void Cheats::Menu()
 		if (ImGui::BeginTabItem("AimBot "))
 		{
 			Gui.MyCheckBox("AimBot", &MenuConfig::AimBot);
+			if (!Offset::ViewAngle)
+				ImGui::TextColored(ImVec4(1.f, 0.4f, 0.4f, 1.f), "Unavailable: ViewAngles address not found, aiming is a no-op");
 
 			if (ImGui::Combo("AimKey", &MenuConfig::AimBotHotKey, "LBUTTON\0MENU\0RBUTTON\0XBUTTON1\0XBUTTON2\0CAPITAL\0SHIFT\0CONTROL"))// added LBUTTON
 			{
@@ -161,11 +175,83 @@ void Cheats::Menu()
 
 			//Bunnyhopping
 			Gui.MyCheckBox("Bunnyhop ", &MenuConfig::BunnyHop);
+			if (!Offset::ForceJump)
+				ImGui::TextColored(ImVec4(1.f, 0.4f, 0.4f, 1.f), "Unavailable: ForceJump address not found");
 			ImGui::SameLine();
 			Gui.MyCheckBox("ShowWhenSpec", &MenuConfig::ShowWhenSpec);
 
+
 			ImGui::EndTabItem();
 
+		}
+
+		// Overlays
+		if (ImGui::BeginTabItem("Overlays "))
+		{
+			Gui.MyCheckBox("Watermark", &MenuConfig::ShowWatermark);
+			Gui.MyCheckBox("GrenadeESP", &MenuConfig::ShowGrenadeESP);
+			ImGui::SameLine();
+			Gui.MyCheckBox("GrenadeTimers (smoke/molly)", &MenuConfig::ShowGrenadeTimers);
+			ImGui::SliderFloat("TextScale (ESP)", &MenuConfig::TextScale, 0.6f, 2.0f, "%.2f");
+			ImGui::SliderFloat("OverlayScale (windows)", &MenuConfig::OverlayScale, 0.7f, 2.0f, "%.2f");
+			Gui.MyCheckBox("BombTimer", &MenuConfig::ShowBombTimer);
+			Gui.MyCheckBox("Spectators", &MenuConfig::ShowSpectators);
+			ImGui::SameLine();
+			Gui.MyCheckBox("Avatars (Steam web request)", &MenuConfig::ShowSpectatorAvatars);
+			Gui.MyCheckBox("VoteRevealer", &MenuConfig::ShowVoteRevealer);
+			Gui.MyCheckBox("Keybinds", &MenuConfig::ShowKeybinds);
+			Gui.MyCheckBox("PlayerInfo", &MenuConfig::ShowPlayerInfo);
+			Gui.MyCheckBox("HitSound", &MenuConfig::HitSound);
+			ImGui::Combo("HitSoundType", &MenuConfig::HitSoundType, "Beep\0High beep\0Custom wav (hitsound.wav)\0");
+			ImGui::EndTabItem();
+		}
+
+		// Signature finder
+		if (ImGui::BeginTabItem("SigScan "))
+		{
+			SigScan::Render();
+			ImGui::EndTabItem();
+		}
+
+		// Debug
+		if (ImGui::BeginTabItem("Debug "))
+		{
+			Gui.MyCheckBox("Console log (1/s)", &Debug::ConsoleLog);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset counters"))
+				Debug::Reset();
+
+			ImGui::Separator();
+			ImGui::Text("Offsets (client.dll RVA)");
+			ImGui::Text("  EntityList %llX   Matrix %llX", (DWORD64)Offset::EntityList, (DWORD64)Offset::Matrix);
+			ImGui::TextColored(Offset::ViewAngle ? ImVec4(0.4f, 1.f, 0.4f, 1.f) : ImVec4(1.f, 0.4f, 0.4f, 1.f),
+				"  ViewAngles %s (aimbot %s)", Offset::ViewAngle ? "ok" : "MISSING", Offset::ViewAngle ? "on" : "disabled");
+			ImGui::TextColored(Offset::ForceJump ? ImVec4(0.4f, 1.f, 0.4f, 1.f) : ImVec4(1.f, 0.4f, 0.4f, 1.f),
+				"  ForceJump  %s (bunnyhop %s)", Offset::ForceJump ? "ok" : "MISSING", Offset::ForceJump ? "on" : "disabled");
+			ImGui::Text("  GlobalVars %s", Offset::GlobalVars ? "ok" : "missing");
+			ImGui::Text("  BoneArray  0x%X (%s)", Offset::Pawn.BoneArray, Offset::BoneArrayCalibrated ? "verified" : "not verified yet");
+			if (Offset::ForceJump)
+			{
+				int JumpState = 0;
+				ProcessMgr.ReadMemory<int>(gGame.GetClientDLLAddress() + Offset::ForceJump, JumpState);
+				ImGui::Text("  Jump state field (RVA %llX) = %d  (hold SPACE: should change)", (DWORD64)Offset::ForceJump, JumpState);
+			}
+
+			ImGui::Separator();
+			ImGui::Text("Last frame");
+			ImGui::Text("  EntityListEntry %llX", Debug::Frame.EntityListEntry);
+			ImGui::Text("  Controller %llX  Pawn %llX", Debug::Frame.LocalController, Debug::Frame.LocalPawn);
+			ImGui::Text("  Local HP %d  Team %d  Weapon %s", Debug::Frame.LocalHealth, Debug::Frame.LocalTeam, Debug::Frame.LocalWeapon.c_str());
+			ImGui::Text("  Slots %u  Parsed %u  Drawn %u", Debug::Frame.Slots, Debug::Frame.Parsed, Debug::Frame.Drawn);
+
+			ImGui::Separator();
+			ImGui::Text("Failed steps (since reset)");
+			if (Debug::Failures.empty())
+				ImGui::TextDisabled("  none");
+			for (const auto& [Step, Count] : Debug::Failures)
+				ImGui::Text("  %-28s %u", Step.c_str(), Count);
+
+			ImGui::EndTabItem();
 		}
 
 		// Render config saver
@@ -173,7 +259,7 @@ void Cheats::Menu()
 		
 		ImGui::Separator();
 
-		ImGui::Text("[HOME] HideMenu");
+		ImGui::Text("[INSERT] HideMenu");
 
 		ImGui::EndTabBar();
 	}ImGui::End();
@@ -208,7 +294,7 @@ void Cheats::Run()
 	static std::chrono::time_point LastTimePoint = std::chrono::steady_clock::now();
 	auto CurTimePoint = std::chrono::steady_clock::now();
 
-	if (GetAsyncKeyState(VK_HOME)
+	if (GetAsyncKeyState(VK_INSERT)
 		&& CurTimePoint - LastTimePoint >= std::chrono::milliseconds(150))
 	{
 		// Check key state per 150ms once to avoid loop.
@@ -219,28 +305,75 @@ void Cheats::Run()
 	if (MenuConfig::ShowMenu)
 		Menu();
 
+	if (MenuConfig::ShowWatermark)
+		Overlays::Watermark();
+
 	// Update matrix
 	if (!ProcessMgr.ReadMemory(gGame.GetMatrixAddress(), gGame.View.Matrix, 64))
+	{
+		Debug::Fail("Run::ViewMatrix");
 		return;
+	}
 
 	// Update EntityList Entry
-	gGame.UpdateEntityListEntry();
+	if (!gGame.UpdateEntityListEntry())
+		Debug::Fail("Run::EntityListEntry");
+	Debug::Frame = {};
+	Debug::Frame.EntityListEntry = gGame.GetEntityListEntry();
 
+	// Scoreboard-style player table (reads rank/wins/K/D/HS%/equipment from game memory)
+	if (MenuConfig::ShowPlayerInfo)
+		PlayerInfo::Render();
+
+	// The local controller is the one with m_bIsLocalPlayerController set (no signature needed).
 	DWORD64 LocalControllerAddress = 0;
-	DWORD64 LocalPawnAddress = 0;
+	for (int i = 1; i <= 64 && LocalControllerAddress == 0; i++)
+	{
+		DWORD64 Candidate = 0;
+		bool IsLocal = false;
+		if (!ProcessMgr.ReadMemory<DWORD64>(gGame.GetEntityListEntry() + i * 0x70, Candidate) || Candidate == 0)
+			continue;
+		if (ProcessMgr.ReadMemory<bool>(Candidate + Offset::Entity.bIsLocalPlayerController, IsLocal) && IsLocal)
+			LocalControllerAddress = Candidate;
+	}
+	if (LocalControllerAddress == 0)
+	{
+		Debug::Fail("Run::LocalController");
+		return;
+	}
+	Debug::Frame.LocalController = LocalControllerAddress;
 
-	if (!ProcessMgr.ReadMemory(gGame.GetLocalControllerAddress(), LocalControllerAddress))
+	PlayerController LocalControllerProbe;
+	LocalControllerProbe.Address = LocalControllerAddress;
+	DWORD64 LocalPawnAddress = LocalControllerProbe.GetPlayerPawnAddress();
+	if (LocalPawnAddress == 0)
+	{
+		Debug::Fail("Run::LocalPawnHandle");
 		return;
-	if (!ProcessMgr.ReadMemory(gGame.GetLocalPawnAddress(), LocalPawnAddress))
-		return;
+	}
+	Debug::Frame.LocalPawn = LocalPawnAddress;
+
+	Overlays::Render(LocalControllerAddress);
+	HitSound::Update(LocalControllerAddress);
 
 	// LocalEntity
 	CEntity LocalEntity;
 	static int LocalPlayerControllerIndex = 1;
 	if (!LocalEntity.UpdateController(LocalControllerAddress))
+	{
+		Debug::Fail("Run::LocalUpdateController");
 		return;
+	}
 	if (!LocalEntity.UpdatePawn(LocalPawnAddress) && !MenuConfig::ShowWhenSpec)
+	{
+		Debug::Fail("Run::LocalUpdatePawn");
 		return;
+	}
+	Debug::Frame.LocalHealth = LocalEntity.Pawn.Health;
+	Debug::Frame.LocalTeam = LocalEntity.Pawn.TeamID;
+	Debug::Frame.LocalWeapon = LocalEntity.Pawn.WeaponName;
+
+	Overlays::Grenades(LocalControllerAddress, LocalEntity.Pawn.Pos);
 
 	// HealthBar Map
 	static std::map<DWORD64, Render::HealthBar> HealthBarMap;
@@ -260,8 +393,11 @@ void Cheats::Run()
 	{
 		CEntity Entity;
 		DWORD64 EntityAddress = 0;
-		if (!ProcessMgr.ReadMemory<DWORD64>(gGame.GetEntityListEntry() + (i + 1) * 0x78, EntityAddress))
+		if (!ProcessMgr.ReadMemory<DWORD64>(gGame.GetEntityListEntry() + (i + 1) * 0x70, EntityAddress))
 			continue;
+
+		if (EntityAddress != 0)
+			Debug::Frame.Slots++;
 
 		if (EntityAddress == LocalEntity.Controller.Address)
 		{
@@ -272,21 +408,32 @@ void Cheats::Run()
 		if (!Entity.UpdateController(EntityAddress))
 			continue;
 
+		// Dead players have no active weapon / valid pawn data; skip them before parsing the pawn.
+		if (Entity.Controller.AliveStatus != 1)
+			continue;
+
 		if (!Entity.UpdatePawn(Entity.Pawn.Address))
 			continue;
 
-		if (MenuConfig::TeamCheck && Entity.Controller.TeamID == LocalEntity.Controller.TeamID)
+		const bool IsTeammate = Entity.Controller.TeamID == LocalEntity.Controller.TeamID;
+		// Teammates drawn as ESP only: never aim / radar-as-enemy targets.
+		const bool EspOnly = IsTeammate && MenuConfig::ShowTeammateESP;
+		if (MenuConfig::TeamCheck && IsTeammate && !EspOnly)
 			continue;
+		const ImColor BoxCol = EspOnly ? MenuConfig::TeamBoxColor : MenuConfig::BoxColor;
+		const ImColor BoneCol = EspOnly ? MenuConfig::TeamBoneColor : MenuConfig::BoneColor;
 
 		if (!Entity.IsAlive())
 			continue;
+		Debug::Frame.Parsed++;
 
 		// Add entity to radar
 		if (MenuConfig::ShowRadar)
-			Radar.AddPoint(LocalEntity.Pawn.Pos, LocalEntity.Pawn.ViewAngle.y, Entity.Pawn.Pos, ImColor(237, 85, 106, 200), MenuConfig::RadarType, Entity.Pawn.ViewAngle.y);
+			Radar.AddPoint(LocalEntity.Pawn.Pos, LocalEntity.Pawn.ViewAngle.y, Entity.Pawn.Pos, EspOnly ? ImColor(80, 220, 120, 200) : ImColor(237, 85, 106, 200), MenuConfig::RadarType, Entity.Pawn.ViewAngle.y);
 
 		if (!Entity.IsInScreen())
 			continue;
+		Debug::Frame.Drawn++;
 
 		// Bone Debug
 	/*	for (int BoneIndex = 0; BoneIndex < Entity.BoneData.BonePosList.size(); BoneIndex++)
@@ -301,7 +448,7 @@ void Cheats::Run()
 		DistanceToSight = Entity.GetBone().BonePosList[BONEINDEX::head].ScreenPos.DistanceTo({ Gui.Window.Size.x / 2,Gui.Window.Size.y / 2 });
 
 
-		if (DistanceToSight < MaxAimDistance)
+		if (!EspOnly && DistanceToSight < MaxAimDistance)
 		{
 			MaxAimDistance = DistanceToSight;
 			// From: https://github.com/redbg/CS2-Internal/blob/fc8e64430176a62f8800b7467884806708a865bb/src/include/Cheats.hpp#L129
@@ -317,7 +464,7 @@ void Cheats::Run()
 
 		// Draw Bone
 		if (MenuConfig::ShowBoneESP)
-			Render::DrawBone(Entity, MenuConfig::BoneColor, 1.3);
+			Render::DrawBone(Entity, BoneCol, 1.3);
 
 		// Draw eyeRay
 		if (MenuConfig::ShowEyeRay)
@@ -338,12 +485,12 @@ void Cheats::Run()
 		}
 
 		// Line to enemy
-		if (MenuConfig::ShowLineToEnemy)
+		if (MenuConfig::ShowLineToEnemy && !EspOnly)
 			Render::LineToEnemy(Rect, MenuConfig::LineToEnemyColor, 1.2);
 
 		// Draw Box
 		if (MenuConfig::ShowBoxESP)
-			Gui.Rectangle({ Rect.x,Rect.y }, { Rect.z,Rect.w }, MenuConfig::BoxColor, 1.3);
+			Gui.Rectangle({ Rect.x,Rect.y }, { Rect.z,Rect.w }, BoxCol, 1.3);
 
 		// Draw HealthBar
 		if (MenuConfig::ShowHealthBar)
@@ -364,9 +511,11 @@ void Cheats::Run()
 			Render::DrawHealthBar(EntityAddress, 100, Entity.Pawn.Health, HealthBarPos, HealthBarSize, MenuConfig::HealthBarType);
 		}
 
+		const float TS = TextScale::FromBox(Rect.w);
+
 		// Draw weaponName
 		if (MenuConfig::ShowWeaponESP)
-			Gui.StrokeText(Entity.Pawn.WeaponName, { Rect.x,Rect.y + Rect.w }, ImColor(255, 255, 255, 255), 14);
+			Gui.StrokeText(Entity.Pawn.WeaponName, { Rect.x,Rect.y + Rect.w }, ImColor(255, 255, 255, 255), TS);
 
 		if (MenuConfig::ShowDistance)
 			Render::DrawDistance(LocalEntity, Entity, Rect);
@@ -374,9 +523,9 @@ void Cheats::Run()
 		if (MenuConfig::ShowPlayerName)
 		{
 			if (MenuConfig::HealthBarType == 0)
-				Gui.StrokeText(Entity.Controller.PlayerName, { Rect.x + Rect.z / 2,Rect.y - 14 }, ImColor(255, 255, 255, 255), 14, true);
+				Gui.StrokeText(Entity.Controller.PlayerName, { Rect.x + Rect.z / 2,Rect.y - TS }, ImColor(255, 255, 255, 255), TS, true);
 			else
-				Gui.StrokeText(Entity.Controller.PlayerName, { Rect.x + Rect.z / 2,Rect.y - 13 - 14 }, ImColor(255, 255, 255, 255), 14, true);
+				Gui.StrokeText(Entity.Controller.PlayerName, { Rect.x + Rect.z / 2,Rect.y - 13 - TS }, ImColor(255, 255, 255, 255), TS, true);
 		}
 
 	}
@@ -437,6 +586,9 @@ void Cheats::Run()
 
 	if (MenuConfig::AntiFlashbang)
 		AntiFlashbang::Run(LocalEntity);
+
+	if (Debug::ConsoleLog && Debug::Every(1000))
+		Debug::PrintFrame();
 
 	if (MenuConfig::AimBot && GetAsyncKeyState(AimControl::HotKey))
 	{

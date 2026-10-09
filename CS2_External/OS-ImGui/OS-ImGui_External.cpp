@@ -283,3 +283,12 @@ namespace OSImGui
     }
 
 }
+
+namespace OSImGui
+{
+    // g_Device is a per-translation-unit static, so expose the initialised copy.
+    ID3D11Device* GetOverlayDevice()
+    {
+        return g_Device.g_pd3dDevice;
+    }
+}

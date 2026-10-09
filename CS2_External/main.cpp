@@ -50,6 +50,18 @@ int main()
 	std::cout << Format("--LocalPlayerPawn:%llX\n", Offset::LocalPlayerPawn);
 	std::cout << Format("--ForceJump:%llX\n", Offset::ForceJump);
 
+	if (!Offset::ViewAngle)
+		std::cout << "[WARN] ViewAngles signature not found -> aimbot disabled" << std::endl;
+	if (!Offset::ForceJump)
+		std::cout << "[WARN] ForceJump signature not found -> bunnyhop disabled" << std::endl;
+	if (!Offset::GlobalVars)
+		std::cout << "[WARN] GlobalVars signature not found" << std::endl;
+	{
+		DWORD64 EntitySystem = 0;
+		ProcessMgr.ReadMemory<DWORD64>(gGame.GetEntityListAddress(), EntitySystem);
+		std::cout << Format("[Debug] EntitySystem ptr:%llX %s\n", EntitySystem, EntitySystem ? "" : "(null - not in a match yet?)");
+	}
+
 
 	if (fs::exists(MenuConfig::path))
 		std::cout << "Config folder connected: "<< MenuConfig::path << std::endl;

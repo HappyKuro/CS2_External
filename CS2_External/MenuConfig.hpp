@@ -49,6 +49,18 @@ namespace MenuConfig
 	inline bool Shoot = false;// so that it doesn’t aim when the trigger hits
 
 	inline bool TeamCheck = true;
+	// Draw teammates too (ESP only, never aim targets) in their own colors.
+	inline bool ShowGrenadeESP = true;
+	inline bool ShowGrenadeTimers = true;
+	// Scales ESP text (players, grenades) and the overlay windows.
+	inline float TextScale = 1.0f;
+	inline float OverlayScale = 1.0f;
+	inline bool HitSound = false;
+	// 0: beep, 1: high beep, 2: custom wav (<Documents>/CS2_External/hitsound.wav, optional headshot.wav)
+	inline int HitSoundType = 0;
+	inline bool ShowTeammateESP = false;
+	inline ImColor TeamBoxColor = ImColor(80, 220, 120, 255);
+	inline ImColor TeamBoneColor = ImColor(80, 220, 120, 255);
 	inline bool OBSBypass = true;
 
 	inline bool BunnyHop = false;
@@ -68,6 +80,13 @@ namespace MenuConfig
 	inline float CrossHairSize = 150;
 
 	inline bool ShowWhenSpec = true;
+	inline bool ShowPlayerInfo = false;
+	inline bool ShowWatermark = true;
+	inline bool ShowBombTimer = true;
+	inline bool ShowSpectators = true;
+	inline bool ShowSpectatorAvatars = true;
+	inline bool ShowVoteRevealer = true;
+	inline bool ShowKeybinds = true;
 
 	inline bool AntiFlashbang = true;
 }

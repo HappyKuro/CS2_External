@@ -32,42 +32,29 @@ bool Offset::UpdateOffsets()
 
 	Offset::EntityList = TempAddress - ClientDLL;
 
-	TempAddress = SearchOffsets(Offset::Signatures::LocalPlayerController, ClientDLL);
-	if (TempAddress == 0)
-		return false;
-
-	Offset::LocalPlayerController = TempAddress - ClientDLL;
-
 	TempAddress = SearchOffsets(Offset::Signatures::ViewMatrix, ClientDLL);
 	if (TempAddress == 0)
 		return false;
 
 	Offset::Matrix = TempAddress - ClientDLL;
 
+	// Optional: no valid signature found yet for the current client.dll.
+	// The features that need these stay disabled (offset stays 0).
 	TempAddress = SearchOffsets(Offset::Signatures::GlobalVars, ClientDLL);
-	if (TempAddress == 0)
-		return false;
+	if (TempAddress != 0)
+		Offset::GlobalVars = TempAddress - ClientDLL;
 
-	Offset::GlobalVars = TempAddress - ClientDLL;
-
+	// CCSGOInput is a static object in this build (no pointer to dereference); its view angles (QAngle)
+	// are at +0x688 (CCSGOInput::SetViewAngle writes there when no user command is queued).
 	TempAddress = SearchOffsets(Offset::Signatures::ViewAngles, ClientDLL);
-	if (TempAddress == 0)
-		return false;
-	if (!ProcessMgr.ReadMemory(TempAddress, TempAddress))
-		return false;
-
-	Offset::ViewAngle = TempAddress + 0x6140 - ClientDLL;
-
-	TempAddress = SearchOffsets(Offset::Signatures::LocalPlayerPawn, ClientDLL);
-	if (TempAddress == 0)
-		return false;
-
-	Offset::LocalPlayerPawn = TempAddress + 0x138 - ClientDLL;
+	if (TempAddress != 0)
+		Offset::ViewAngle = TempAddress + Offset::Input.ViewAngles - ClientDLL;
 
 	TempAddress = SearchOffsets(Offset::Signatures::ForceJump, ClientDLL);
-	if (TempAddress == 0)
-		return false;
+	// TempAddress = the jump button object; the state field is at +0x30 (matches the cs2-dumper button addresses,
+	// which are object base + 0x30). The Debug tab shows its live value.
+	if (TempAddress != 0)
+		Offset::ForceJump = TempAddress + 0x30 - ClientDLL;
 
-	Offset::ForceJump = TempAddress + 0x30 - ClientDLL;	
 	return true;
 }
