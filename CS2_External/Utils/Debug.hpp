@@ -28,6 +28,37 @@ namespace Debug
 	};
 	inline FrameInfo Frame;
 
+	// Aimbot / auto shoot state of the last frame.
+	struct AimInfo
+	{
+		bool KeyDown = false;
+		bool HasTarget = false;
+		bool InFov = false;
+		bool WriteOk = false;
+		bool OnTarget = false;
+		float Norm = 0.f;		// angle to the target in degrees
+		float Fov = 0.f;		// pawn FOV value read from the game (info only)
+	};
+	inline AimInfo Aim;
+	inline int AutoShots = 0;	// clicks sent by auto shoot
+
+	// Bomb timer state of the last frame (why it is or is not shown).
+	struct BombInfo
+	{
+		DWORD64 Entity = 0;		// planted_c4 entity found by the scan (0 = none in the entity list)
+		bool Ticking = false;
+		bool Defused = false;
+		bool Exploded = false;
+		float Blow = 0.f;		// m_flC4Blow (game time)
+		float Length = 0.f;		// m_flTimerLength
+		float ClockGlobals = -1.f;	// current time from the global vars
+		float ClockTicks = -1.f;	// current time from the local tick base
+		int Source = 0;			// 0 none, 1 global vars, 2 tick base, 3 estimate from first sight
+		float Left = 0.f;
+		const char* Reason = "not run";
+	};
+	inline BombInfo Bomb;
+
 	inline void Fail(const char* Step)
 	{
 		Failures[Step]++;

@@ -1,14 +1,15 @@
 #pragma once
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "../AimBot.hpp"
-#include "../Entity.h"
-#include "../MenuConfig.hpp"
-#include "../TriggerBot.h"
+#include "Features/AimBot.hpp"
+#include "Game/Entity.h"
+#include "Config/MenuConfig.hpp"
+#include "Features/TriggerBot.h"
 #include "Avatar.hpp"
 #include "Debug.hpp"
 #include "TextScale.hpp"
@@ -264,14 +265,23 @@ namespace Overlays
 
 	inline void BombTimer(DWORD64 LocalController)
 	{
+		Debug::Bomb = {};
+		Debug::Bomb.Entity = PlantedC4;
 		if (PlantedC4 == 0)
+		{
+			Debug::Bomb.Reason = "no planted_c4 entity in the entity list";
 			return;
+		}
 
 		bool Ticking = false, Defused = false, Exploded = false, BeingDefused = false;
 		int Site = 0;
 		float Blow = 0, Length = 40.f, DefuseEnd = 0, DefuseLength = 0;
 		if (!ProcessMgr.ReadMemory<bool>(PlantedC4 + Offset::PlantedC4.BombTicking, Ticking) || !Ticking)
+		{
+			Debug::Bomb.Reason = "bomb not ticking";
 			return;
+		}
+		Debug::Bomb.Ticking = true;
 		ProcessMgr.ReadMemory<bool>(PlantedC4 + Offset::PlantedC4.BombDefused, Defused);
 		ProcessMgr.ReadMemory<bool>(PlantedC4 + Offset::PlantedC4.HasExploded, Exploded);
 		ProcessMgr.ReadMemory<int>(PlantedC4 + Offset::PlantedC4.BombSite, Site);
@@ -280,24 +290,72 @@ namespace Overlays
 		ProcessMgr.ReadMemory<bool>(PlantedC4 + Offset::PlantedC4.BeingDefused, BeingDefused);
 		ProcessMgr.ReadMemory<float>(PlantedC4 + Offset::PlantedC4.DefuseCountDown, DefuseEnd);
 		ProcessMgr.ReadMemory<float>(PlantedC4 + Offset::PlantedC4.DefuseLength, DefuseLength);
+		Debug::Bomb.Defused = Defused;
+		Debug::Bomb.Exploded = Exploded;
+		Debug::Bomb.Blow = Blow;
 		if (Defused || Exploded)
+		{
+			Debug::Bomb.Reason = Defused ? "defused" : "exploded";
 			return;
-
-		// Current game time = local tick base * tick interval (64 tick).
-		DWORD TickBase = 0;
-		if (!ProcessMgr.ReadMemory<DWORD>(LocalController + Offset::Entity.TickBase, TickBase))
-			return;
-		float Now = TickBase / 64.f;
-		float Left = Blow - Now;
+		}
 		if (Length <= 0.f || Length > 120.f)
 			Length = 40.f;
-		if (Left < 0.f || Left > Length + 1.f)
-			return;	// stale / bogus
+		Debug::Bomb.Length = Length;
+
+		// Current game time: the global vars' curtime (+0x30 in this build) first, then the local tick base at
+		// 64 tick. Whichever gives a sensible remaining time (0..Length) is used.
+		float NowGlobals = -1.f, NowTicks = -1.f;
+		DWORD64 Globals = 0;
+		if (gGame.GetGlobalVarsAddress() && ProcessMgr.ReadMemory<DWORD64>(gGame.GetGlobalVarsAddress(), Globals) && Globals != 0)
+			ProcessMgr.ReadMemory<float>(Globals + Offset::GlobalVar.CurrentTime2, NowGlobals);
+		DWORD TickBase = 0;
+		if (ProcessMgr.ReadMemory<DWORD>(LocalController + Offset::Entity.TickBase, TickBase))
+			NowTicks = TickBase / 64.f;
+		Debug::Bomb.ClockGlobals = NowGlobals;
+		Debug::Bomb.ClockTicks = NowTicks;
+
+		auto Sensible = [&](float Now) { float L = Blow - Now; return Now > 0.f && L >= -0.5f && L <= Length + 1.f; };
+		float Now = 0.f, Left = 0.f;
+		bool Estimated = false;
+		if (Sensible(NowGlobals))
+		{
+			Now = NowGlobals;
+			Debug::Bomb.Source = 1;
+		}
+		else if (Sensible(NowTicks))
+		{
+			Now = NowTicks;
+			Debug::Bomb.Source = 2;
+		}
+		else
+		{
+			// No usable clock: count down from the moment the bomb was first seen (assumes it was just planted).
+			static float LastBlow = 0.f;
+			static std::chrono::steady_clock::time_point FirstSeen;
+			if (std::fabs(Blow - LastBlow) > 0.001f)
+			{
+				LastBlow = Blow;
+				FirstSeen = std::chrono::steady_clock::now();
+			}
+			float Elapsed = std::chrono::duration<float>(std::chrono::steady_clock::now() - FirstSeen).count();
+			Left = Length - Elapsed;
+			Estimated = true;
+			Debug::Bomb.Source = 3;
+			if (Left < 0.f)
+			{
+				Debug::Bomb.Reason = "estimate ran out";
+				return;
+			}
+		}
+		if (!Estimated)
+			Left = Blow - Now;
+		Debug::Bomb.Left = Left;
+		Debug::Bomb.Reason = "shown";
 
 		ImGui::SetNextWindowBgAlpha(0.8f);
 		ImGui::Begin("Bomb Timer", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 		ImGui::SetWindowFontScale(MenuConfig::OverlayScale);
-		ImGui::Text("Time left: %.2fs", Left);
+		ImGui::Text(Estimated ? "Time left: ~%.1fs (estimate)" : "Time left: %.2fs", Left);
 		ImGui::Text("Planted on: %s", Site == 0 ? "A" : "B");
 
 		float Fraction = std::clamp(Left / Length, 0.f, 1.f);
@@ -306,7 +364,7 @@ namespace Overlays
 		ImGui::ProgressBar(Fraction, ImVec2(180.f, 14.f), "");
 		ImGui::PopStyleColor();
 
-		if (BeingDefused)
+		if (BeingDefused && !Estimated)
 		{
 			float DefuseLeft = DefuseEnd - Now;
 			bool InTime = DefuseLeft < Left;

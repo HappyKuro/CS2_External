@@ -1,4 +1,4 @@
-#include "globalvars.h"
+#include "Game/GlobalVars.h"
 
 bool globalvars::UpdateGlobalvars()
 {

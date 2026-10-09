@@ -5,8 +5,8 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "../Game.h"
-#include "../Offsets.h"
+#include "Game/Game.h"
+#include "Game/Offsets.h"
 
 // In-overlay signature finder: scan a module of the running game for a byte pattern
 // ("48 8B 05 ?? ?? ?? ?? ..."), optionally resolving a RIP-relative operand, and apply

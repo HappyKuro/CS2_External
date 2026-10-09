@@ -1,12 +1,14 @@
 #pragma once
-#include "Game.h"
-#include "Bone.h"
+#include "Game/Game.h"
+#include "Game/Bone.h"
 
 namespace MenuConfig
 {
 	inline std::string path = "";
 
 	inline bool ShowBoneESP = true;
+	// Debug: draw the index of every bone so the skeleton mapping (BONEINDEX) can be checked.
+	inline bool ShowBoneIndices = false;
 	inline bool ShowBoxESP = true;
 	inline bool ShowHealthBar = true;
 	inline bool ShowWeaponESP = true;
@@ -50,6 +52,14 @@ namespace MenuConfig
 
 	inline bool TeamCheck = true;
 	// Draw teammates too (ESP only, never aim targets) in their own colors.
+	// Auto fire while the aimbot has a target under the crosshair.
+	// Keep aiming at the same player while the aim key is held (instead of re-picking every frame).
+	inline bool AimLockTarget = true;
+	inline bool AutoShoot = false;
+	inline float AutoShootAngle = 1.5f;	// fire when the target is within this many degrees of the crosshair
+	inline int AutoShootDelay = 40;		// ms between shots
+	// Free-for-all (deathmatch): teammates are targets for the aimbot and triggerbot and are drawn as enemies.
+	inline bool DeathmatchMode = false;
 	inline bool ShowGrenadeESP = true;
 	inline bool ShowGrenadeTimers = true;
 	// Scales ESP text (players, grenades) and the overlay windows.
@@ -81,6 +91,9 @@ namespace MenuConfig
 
 	inline bool ShowWhenSpec = true;
 	inline bool ShowPlayerInfo = false;
+	// True while CS2 (or this overlay, when you click its menu) is the foreground window. Set every frame by the
+	// overlay; when false the overlay is hidden and nothing that reads the keyboard or moves the mouse runs.
+	inline bool GameFocused = true;
 	inline bool ShowWatermark = true;
 	inline bool ShowBombTimer = true;
 	inline bool ShowSpectators = true;

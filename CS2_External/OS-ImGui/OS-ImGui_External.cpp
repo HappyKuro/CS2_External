@@ -1,5 +1,5 @@
 #include "OS-ImGui_External.h"
-#include "..\MenuConfig.hpp"
+#include "Config/MenuConfig.hpp"
 /****************************************************
 * Copyright (C)	: Liv
 * @file			: OS-ImGui_External.cpp
@@ -229,9 +229,25 @@ namespace OSImGui
         Window.Pos = DestWindow.Pos = Vec2(static_cast<float>(Point.x), static_cast<float>(Point.y));
         Window.Size = DestWindow.Size = Vec2(static_cast<float>(Rect.right), static_cast<float>(Rect.bottom));
 
-        SetWindowPos(Window.hWnd, HWND_TOPMOST, (int)Window.Pos.x, (int)Window.Pos.y, (int)Window.Size.x, (int)Window.Size.y, SWP_SHOWWINDOW);
+        // Show the overlay only while the game window (or the overlay itself, for its menu) is the foreground
+        // window and the game is not minimized. Otherwise it would stay on top of the browser and everything else.
+        HWND Foreground = GetForegroundWindow();
+        bool GameInFront = (Foreground == DestWindow.hWnd || Foreground == Window.hWnd) && !IsIconic(DestWindow.hWnd);
+        MenuConfig::GameFocused = GameInFront;
 
-        // ¿ØÖÆ´°¿Ú×´Ì¬ÇÐ»»
+        if (GameInFront)
+        {
+            SetWindowPos(Window.hWnd, HWND_TOPMOST, (int)Window.Pos.x, (int)Window.Pos.y, (int)Window.Size.x, (int)Window.Size.y, SWP_SHOWWINDOW | SWP_NOACTIVATE);
+        }
+        else
+        {
+            if (IsWindowVisible(Window.hWnd))
+                ShowWindow(Window.hWnd, SW_HIDE);
+            Sleep(20); // nothing to draw: do not spin while hidden
+            return true;
+        }
+
+        // ï¿½ï¿½ï¿½Æ´ï¿½ï¿½ï¿½×´Ì¬ï¿½Ð»ï¿½
         POINT MousePos;
         GetCursorPos(&MousePos);
         ScreenToClient(Window.hWnd, &MousePos);

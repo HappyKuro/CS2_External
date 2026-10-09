@@ -1,4 +1,4 @@
-#include "Entity.h"
+#include "Game/Entity.h"
 #include "Utils/Debug.hpp"
 
 bool CEntity::UpdateController(const DWORD64& PlayerControllerAddress)
@@ -59,11 +59,6 @@ bool CEntity::UpdatePawn(const DWORD64& PlayerPawnAddress)
 			Debug::Fail("Pawn::GetWeaponName");
 			return false;
 		}
-	if (!this->Pawn.GetAimPunchAngle())
-		{
-			Debug::Fail("Pawn::GetAimPunchAngle");
-			return false;
-		}
 	if (!this->Pawn.GetShotsFired())
 		{
 			Debug::Fail("Pawn::GetShotsFired");
@@ -92,11 +87,6 @@ bool CEntity::UpdatePawn(const DWORD64& PlayerPawnAddress)
 	if (!this->Pawn.GetFFlags())
 		{
 			Debug::Fail("Pawn::GetFFlags");
-			return false;
-		}
-	if (!this->Pawn.GetAimPunchCache())
-		{
-			Debug::Fail("Pawn::GetAimPunchCache");
 			return false;
 		}
 	if (!this->Pawn.BoneData.UpdateAllBoneData(PlayerPawnAddress))
@@ -208,19 +198,9 @@ bool PlayerPawn::GetShotsFired()
 	return GetDataAddressWithOffset<DWORD>(Address, Offset::Pawn.iShotsFired, this->ShotsFired);
 }
 
-bool PlayerPawn::GetAimPunchAngle()
-{
-	return GetDataAddressWithOffset<Vec2>(Address, Offset::Pawn.aimPunchAngle, this->AimPunchAngle);
-}
-
 bool PlayerPawn::GetTeamID()
 {
 	return GetDataAddressWithOffset<int>(Address, Offset::Pawn.iTeamNum, this->TeamID);
-}
-
-bool PlayerPawn::GetAimPunchCache()
-{
-	return GetDataAddressWithOffset<C_UTL_VECTOR>(Address, Offset::Pawn.aimPunchCache, this->AimPunchCache);
 }
 
 DWORD64 PlayerController::GetPlayerPawnAddress()

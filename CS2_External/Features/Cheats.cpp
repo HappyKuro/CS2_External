@@ -1,6 +1,6 @@
-#include "Cheats.h"
-#include "Render.hpp"
-#include "MenuConfig.hpp"
+#include "Features/Cheats.h"
+#include "Features/Render.hpp"
+#include "Config/MenuConfig.hpp"
 #include "Utils/ConfigMenu.hpp"
 #include "Utils/ConfigSaver.hpp"
 #include "Utils/Debug.hpp"
@@ -40,6 +40,7 @@ void Cheats::Menu()
 			Gui.MyCheckBox("BoneESP", &MenuConfig::ShowBoneESP);
 			ImGui::SameLine();
 			ImGui::ColorEdit4("##BoneColor", reinterpret_cast<float*>(&MenuConfig::BoneColor), ImGuiColorEditFlags_NoInputs);
+			Gui.MyCheckBox("BoneIndices (debug)", &MenuConfig::ShowBoneIndices);
 
 			Gui.MyCheckBox("EyeRay", &MenuConfig::ShowEyeRay);
 			ImGui::SameLine();
@@ -95,7 +96,7 @@ void Cheats::Menu()
 			ImGui::ColorEdit4("##FovCircleColor", reinterpret_cast<float*>(&MenuConfig::AimFovRangeColor), ImGuiColorEditFlags_NoInputs);
 
 			Gui.SliderScalarEx1("Smooth", ImGuiDataType_Float, &AimControl::Smooth, &SmoothMin, &SmoothMax, "%.1f", ImGuiSliderFlags_None);
-			if (ImGui::Combo("AimPos", &MenuConfig::AimPosition, "Head\0Neck\0Spine"))
+			if (ImGui::Combo("AimPos", &MenuConfig::AimPosition, "Head\0Neck\0Spine\0Closest\0"))
 			{
 				switch (MenuConfig::AimPosition)
 				{
@@ -108,16 +109,22 @@ void Cheats::Menu()
 				case 2:
 					MenuConfig::AimPositionIndex = BONEINDEX::spine_1;
 					break;
+				case 3:
+					MenuConfig::AimPositionIndex = BONEINDEX::head;	// unused: the closest bone is chosen per frame
+					break;
 				default:
 					break;
 				}
 			}
-			int BulletMin = 1, BulletMax = 6;
-			float RecoilMin = 0.f, RecoilMax = 2.f;
-			Gui.SliderScalarEx1("Start Bullet", ImGuiDataType_U32, &AimControl::RCSBullet, &BulletMin, &BulletMax, "%d", ImGuiSliderFlags_None);
-			Gui.SliderScalarEx1("RCS Yaw", ImGuiDataType_Float, &AimControl::RCSScale.x, &RecoilMin, &RecoilMax, "%.1f", ImGuiSliderFlags_None);
-			Gui.SliderScalarEx1("RCS Pitch", ImGuiDataType_Float, &AimControl::RCSScale.y, &RecoilMin, &RecoilMax, "%.1f", ImGuiSliderFlags_None);
 			Gui.MyCheckBox("VisibleCheck", &MenuConfig::VisibleCheck);
+			Gui.MyCheckBox("StickyTarget", &MenuConfig::AimLockTarget);
+
+			Gui.MyCheckBox("AutoShoot", &MenuConfig::AutoShoot);
+			float AutoAngleMin = 0.2f, AutoAngleMax = 5.f;
+			int AutoDelayMin = 10, AutoDelayMax = 200;
+			Gui.SliderScalarEx1("AutoShoot angle", ImGuiDataType_Float, &MenuConfig::AutoShootAngle, &AutoAngleMin, &AutoAngleMax, "%.1f", ImGuiSliderFlags_None);
+			Gui.SliderScalarEx1("AutoShoot delay (ms)", ImGuiDataType_S32, &MenuConfig::AutoShootDelay, &AutoDelayMin, &AutoDelayMax, "%d", ImGuiSliderFlags_None);
+			Gui.MyCheckBox("Deathmatch (target teammates)", &MenuConfig::DeathmatchMode);
 		
 			ImGui::EndTabItem();
 		}
@@ -245,6 +252,21 @@ void Cheats::Menu()
 			ImGui::Text("  Slots %u  Parsed %u  Drawn %u", Debug::Frame.Slots, Debug::Frame.Parsed, Debug::Frame.Drawn);
 
 			ImGui::Separator();
+			ImGui::Text("Aimbot");
+			ImGui::Text("  key held %d  target %d  in FOV %d  angle %.2f  write %d  on target %d",
+				Debug::Aim.KeyDown, Debug::Aim.HasTarget, Debug::Aim.InFov, Debug::Aim.Norm, Debug::Aim.WriteOk, Debug::Aim.OnTarget);
+			ImGui::Text("  auto shoot clicks sent: %d   (pawn FOV read: %.0f, projection FOV: %.0f)", Debug::AutoShots,
+				Debug::Aim.Fov, gGame.View.FocalX() > 0.01f ? 2.f * std::atan(1.f / gGame.View.FocalX()) * 180.f / 3.14159265f : 0.f);
+			if (MenuConfig::AutoShoot && AimControl::HotKey == VK_LBUTTON)
+				ImGui::TextColored(ImVec4(1.f, 0.7f, 0.2f, 1.f), "  Aim key is LBUTTON: auto shoot cannot add anything, pick another aim key");
+
+			ImGui::Separator();
+			ImGui::Text("Bomb timer");
+			ImGui::Text("  planted_c4 entity %llX  ticking %d  defused %d  exploded %d", Debug::Bomb.Entity, Debug::Bomb.Ticking, Debug::Bomb.Defused, Debug::Bomb.Exploded);
+			ImGui::Text("  blow %.2f  length %.1f  clock(globals) %.2f  clock(ticks) %.2f  source %d  left %.2f", Debug::Bomb.Blow, Debug::Bomb.Length, Debug::Bomb.ClockGlobals, Debug::Bomb.ClockTicks, Debug::Bomb.Source, Debug::Bomb.Left);
+			ImGui::Text("  status: %s", Debug::Bomb.Reason);
+
+			ImGui::Separator();
 			ImGui::Text("Failed steps (since reset)");
 			if (Debug::Failures.empty())
 				ImGui::TextDisabled("  none");
@@ -290,6 +312,10 @@ void Cheats::RadarSetting(Base_Radar& Radar)
 
 void Cheats::Run()
 {
+	// Not in front: no menu, no hotkeys, no aiming / clicking, no memory reads.
+	if (!MenuConfig::GameFocused)
+		return;
+
 	// Show menu
 	static std::chrono::time_point LastTimePoint = std::chrono::steady_clock::now();
 	auto CurTimePoint = std::chrono::steady_clock::now();
@@ -373,16 +399,14 @@ void Cheats::Run()
 	Debug::Frame.LocalTeam = LocalEntity.Pawn.TeamID;
 	Debug::Frame.LocalWeapon = LocalEntity.Pawn.WeaponName;
 
+	AimControl::BeginFrame(LocalEntity);
 	Overlays::Grenades(LocalControllerAddress, LocalEntity.Pawn.Pos);
 
 	// HealthBar Map
 	static std::map<DWORD64, Render::HealthBar> HealthBarMap;
 
 	// AimBot data
-	float DistanceToSight = 0;
-	float MaxAimDistance = 100000;
-	Vec3  HeadPos{ 0,0,0 };
-	Vec3  AimPos{ 0,0,0 };
+	AimControl::Candidates.clear();
 
 	// Radar Data
 	Base_Radar Radar;
@@ -417,8 +441,8 @@ void Cheats::Run()
 
 		const bool IsTeammate = Entity.Controller.TeamID == LocalEntity.Controller.TeamID;
 		// Teammates drawn as ESP only: never aim / radar-as-enemy targets.
-		const bool EspOnly = IsTeammate && MenuConfig::ShowTeammateESP;
-		if (MenuConfig::TeamCheck && IsTeammate && !EspOnly)
+		const bool EspOnly = IsTeammate && MenuConfig::ShowTeammateESP && !MenuConfig::DeathmatchMode;
+		if (MenuConfig::TeamCheck && IsTeammate && !EspOnly && !MenuConfig::DeathmatchMode)
 			continue;
 		const ImColor BoxCol = EspOnly ? MenuConfig::TeamBoxColor : MenuConfig::BoxColor;
 		const ImColor BoneCol = EspOnly ? MenuConfig::TeamBoneColor : MenuConfig::BoneColor;
@@ -445,21 +469,47 @@ void Cheats::Run()
 			}
 		}*/
 
-		DistanceToSight = Entity.GetBone().BonePosList[BONEINDEX::head].ScreenPos.DistanceTo({ Gui.Window.Size.x / 2,Gui.Window.Size.y / 2 });
-
-
-		if (!EspOnly && DistanceToSight < MaxAimDistance)
+		// Aim candidate: visible (if required), not a teammate we only draw. The aimbot later picks the one closest
+		// to the crosshair by angle (see AimControl::SelectTarget).
+		// From: https://github.com/redbg/CS2-Internal/blob/fc8e64430176a62f8800b7467884806708a865bb/src/include/Cheats.hpp#L129
+		if (!EspOnly && (!MenuConfig::VisibleCheck ||
+			Entity.Pawn.bSpottedByMask & (DWORD64(1) << (LocalPlayerControllerIndex)) ||
+			LocalEntity.Pawn.bSpottedByMask & (DWORD64(1) << (i))))
 		{
-			MaxAimDistance = DistanceToSight;
-			// From: https://github.com/redbg/CS2-Internal/blob/fc8e64430176a62f8800b7467884806708a865bb/src/include/Cheats.hpp#L129
-			if (!MenuConfig::VisibleCheck ||
-				Entity.Pawn.bSpottedByMask & (DWORD64(1) << (LocalPlayerControllerIndex)) ||
-				LocalEntity.Pawn.bSpottedByMask & (DWORD64(1) << (i)))
+			const CBone AimBones = Entity.GetBone();
+			Vec3 BonePos{ 0,0,0 };
+			if (MenuConfig::AimPosition == 3)
 			{
-				AimPos = Entity.GetBone().BonePosList[MenuConfig::AimPositionIndex].Pos;
-				if (MenuConfig::AimPositionIndex == BONEINDEX::head)
-					AimPos.z -= 1.f;
+				// "Closest": whichever of head / neck / chest / pelvis is nearest the crosshair
+				float BestAngle = 1e9f;
+				for (DWORD BoneIndex : AimControl::ClosestBones)
+				{
+					float Angle = AimControl::AngleTo(LocalEntity, LocalEntity.Pawn.CameraPos, AimBones.BonePosList[BoneIndex].Pos);
+					if (Angle < BestAngle)
+					{
+						BestAngle = Angle;
+						BonePos = AimBones.BonePosList[BoneIndex].Pos;
+						if (BoneIndex == BONEINDEX::head)
+							BonePos.z -= 1.f;
+					}
+				}
 			}
+			else
+			{
+				BonePos = AimBones.BonePosList[MenuConfig::AimPositionIndex].Pos;
+				if (MenuConfig::AimPositionIndex == BONEINDEX::head)
+					BonePos.z -= 1.f;
+			}
+			AimControl::Candidates.push_back({ EntityAddress, BonePos });
+		}
+
+		// Bone index debug
+		if (MenuConfig::ShowBoneIndices)
+		{
+			const auto& DebugBones = Entity.Pawn.BoneData.BonePosList;
+			for (size_t BoneIndex = 0; BoneIndex < DebugBones.size(); BoneIndex++)
+				if (DebugBones[BoneIndex].IsVisible)
+					Gui.StrokeText(std::to_string(BoneIndex), DebugBones[BoneIndex].ScreenPos, ImColor(255, 255, 0, 255), 11, true);
 		}
 
 		// Draw Bone
@@ -590,11 +640,21 @@ void Cheats::Run()
 	if (Debug::ConsoleLog && Debug::Every(1000))
 		Debug::PrintFrame();
 
-	if (MenuConfig::AimBot && GetAsyncKeyState(AimControl::HotKey))
+	Debug::Aim = {};
+	const bool AimKeyHeld = MenuConfig::AimBot && (GetAsyncKeyState(AimControl::HotKey) & 0x8000);
+	Debug::Aim.KeyDown = AimKeyHeld;
+	if (!AimKeyHeld)
+		AimControl::LockedId = 0;
+
+	Vec3 AimPos{ 0,0,0 };
+	if (AimKeyHeld && AimControl::IsFireableWeapon(LocalEntity.Pawn.WeaponName))
+		Debug::Aim.HasTarget = AimControl::SelectTarget(LocalEntity, LocalEntity.Pawn.CameraPos, AimPos);
+
+	if (Debug::Aim.HasTarget)
 	{
-		if (AimPos != Vec3(0, 0, 0))
-		{
-			AimControl::AimBot(LocalEntity, LocalEntity.Pawn.CameraPos, AimPos);
-		}
+		bool OnTarget = AimControl::AimBot(LocalEntity, LocalEntity.Pawn.CameraPos, AimPos);
+		if (MenuConfig::AutoShoot && OnTarget)
+			AimControl::AutoShoot(LocalEntity);
 	}
+
 }

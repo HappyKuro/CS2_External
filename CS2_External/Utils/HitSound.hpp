@@ -4,8 +4,8 @@
 #include <chrono>
 #include <string>
 #include <thread>
-#include "../Entity.h"
-#include "../MenuConfig.hpp"
+#include "Game/Entity.h"
+#include "Config/MenuConfig.hpp"
 
 #pragma comment(lib, "winmm.lib")
 

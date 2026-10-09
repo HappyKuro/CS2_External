@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Entity.h"
+#include "Game/Entity.h"
 
 namespace AntiFlashbang
 {

@@ -1,4 +1,4 @@
-#include "Offsets.h"
+#include "Game/Offsets.h"
 
 DWORD64 SearchOffsets(std::string Signature, DWORD64 ModuleAddress)
 {

@@ -19,6 +19,28 @@ namespace OSImGui
         ImGui::StyleColorsDark();
         io.LogFilename = nullptr;
 
+        // Segoe UI (ships with Windows) as the default font. Latin, Latin Extended-A and Cyrillic are included
+        // so player names render; if the file is missing the built-in font stays.
+        {
+            static ImVector<ImWchar> GlyphRanges;
+            static const ImWchar LatinExtendedA[] = { 0x0100, 0x017F, 0 };
+            ImFontGlyphRangesBuilder Builder;
+            Builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+            Builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+            Builder.AddRanges(LatinExtendedA);
+            Builder.BuildRanges(&GlyphRanges);
+
+            char WindowsDir[MAX_PATH]{};
+            GetWindowsDirectoryA(WindowsDir, MAX_PATH);
+            std::string FontPath = std::string(WindowsDir) + "/Fonts/segoeui.ttf";
+            if (GetFileAttributesA(FontPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+            {
+                ImFont* Font = io.Fonts->AddFontFromFileTTF(FontPath.c_str(), 16.f, nullptr, GlyphRanges.Data);
+                if (Font)
+                    io.FontDefault = Font;
+            }
+        }
+
         if (!ImGui_ImplWin32_Init(Window.hWnd))
             throw OSException("ImGui_ImplWin32_Init() call failed.");
         if (!ImGui_ImplDX11_Init(device, device_context))

@@ -1,6 +1,6 @@
 #pragma once
 #include <algorithm>
-#include "../MenuConfig.hpp"
+#include "Config/MenuConfig.hpp"
 
 // Font sizes for world-space text: bigger when the thing is close, smaller (but still readable)
 // when far away, multiplied by the user's TextScale slider.

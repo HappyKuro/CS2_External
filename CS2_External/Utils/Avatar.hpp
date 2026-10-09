@@ -11,7 +11,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "../MenuConfig.hpp"
+#include "Config/MenuConfig.hpp"
 
 #pragma comment(lib, "urlmon.lib")
 #pragma comment(lib, "windowscodecs.lib")

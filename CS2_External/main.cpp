@@ -1,5 +1,5 @@
-#include "Offsets.h"
-#include "Cheats.h"
+#include "Game/Offsets.h"
+#include "Features/Cheats.h"
 #include "Utils/Format.hpp"
 #include <iostream>
 #include <iomanip>

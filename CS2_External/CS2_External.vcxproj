@@ -72,6 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -84,6 +85,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -100,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -114,6 +117,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -133,17 +137,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AntiFlashbang.hpp" />
-    <ClInclude Include="Bunnyhop.hpp" />
-    <ClInclude Include="Bone.h" />
-    <ClInclude Include="Aimbot.hpp" />
-    <ClInclude Include="Cheats.h" />
-    <ClInclude Include="Entity.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="Globals.hpp" />
-    <ClInclude Include="GlobalVars.h" />
-    <ClInclude Include="MenuConfig.hpp" />
-    <ClInclude Include="Offsets.h" />
+    <ClInclude Include="Features\AntiFlashbang.hpp" />
+    <ClInclude Include="Features\Bunnyhop.hpp" />
+    <ClInclude Include="Game\Bone.h" />
+    <ClInclude Include="Features\AimBot.hpp" />
+    <ClInclude Include="Features\Cheats.h" />
+    <ClInclude Include="Game\Entity.h" />
+    <ClInclude Include="Game\Game.h" />
+    <ClInclude Include="Game\Globals.hpp" />
+    <ClInclude Include="Game\GlobalVars.h" />
+    <ClInclude Include="Config\MenuConfig.hpp" />
+    <ClInclude Include="Game\Offsets.h" />
     <ClInclude Include="OS-ImGui\imgui\imconfig.h" />
     <ClInclude Include="OS-ImGui\imgui\imgui.h" />
     <ClInclude Include="OS-ImGui\imgui\imgui_impl_dx11.h" />
@@ -158,22 +162,29 @@
     <ClInclude Include="OS-ImGui\OS-ImGui_External.h" />
     <ClInclude Include="OS-ImGui\OS-ImGui_Struct.h" />
     <ClInclude Include="Radar\Radar.h" />
-    <ClInclude Include="Render.hpp" />
-    <ClInclude Include="TriggerBot.h" />
+    <ClInclude Include="Features\Render.hpp" />
+    <ClInclude Include="Features\TriggerBot.h" />
     <ClInclude Include="Utils\ConfigMenu.hpp" />
     <ClInclude Include="Utils\ConfigSaver.hpp" />
     <ClInclude Include="Utils\Format.hpp" />
     <ClInclude Include="Utils\ProcessManager.hpp" />
-    <ClInclude Include="View.hpp" />
+    <ClInclude Include="Utils\Debug.hpp" />
+    <ClInclude Include="Utils\Overlays.hpp" />
+    <ClInclude Include="Utils\PlayerInfo.hpp" />
+    <ClInclude Include="Utils\HitSound.hpp" />
+    <ClInclude Include="Utils\SigScan.hpp" />
+    <ClInclude Include="Utils\Avatar.hpp" />
+    <ClInclude Include="Utils\TextScale.hpp" />
+    <ClInclude Include="Game\View.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bone.cpp" />
-    <ClCompile Include="Cheats.cpp" />
-    <ClCompile Include="Entity.cpp" />
-    <ClCompile Include="Game.cpp" />
-    <ClCompile Include="GlobalVars.cpp" />
+    <ClCompile Include="Game\Bone.cpp" />
+    <ClCompile Include="Features\Cheats.cpp" />
+    <ClCompile Include="Game\Entity.cpp" />
+    <ClCompile Include="Game\Game.cpp" />
+    <ClCompile Include="Game\GlobalVars.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Offsets.cpp" />
+    <ClCompile Include="Game\Offsets.cpp" />
     <ClCompile Include="OS-ImGui\imgui\imgui.cpp" />
     <ClCompile Include="OS-ImGui\imgui\imgui_demo.cpp" />
     <ClCompile Include="OS-ImGui\imgui\imgui_draw.cpp" />
@@ -185,7 +196,7 @@
     <ClCompile Include="OS-ImGui\OS-ImGui_Base.cpp" />
     <ClCompile Include="OS-ImGui\OS-ImGui_External.cpp" />
     <ClCompile Include="Radar\Radar.cpp" />
-    <ClCompile Include="TriggerBot.cpp" />
+    <ClCompile Include="Features\TriggerBot.cpp" />
     <ClCompile Include="Utils\ConfigMenu.cpp" />
     <ClCompile Include="Utils\ConfigSaver.cpp" />
     <ClCompile Include="Utils\MemorySearch.cpp" />

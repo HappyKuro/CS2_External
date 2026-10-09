@@ -1,8 +1,8 @@
 #pragma once
-#include "Game.h"
-#include "View.hpp"
-#include "Bone.h"
-#include "Globals.hpp"
+#include "Game/Game.h"
+#include "Game/View.hpp"
+#include "Game/Bone.h"
+#include "Game/Globals.hpp"
 
 struct C_UTL_VECTOR
 {
@@ -44,8 +44,6 @@ public:
 	Vec3 CameraPos;
 	std::string WeaponName;
 	DWORD ShotsFired;
-	Vec2 AimPunchAngle;
-	C_UTL_VECTOR AimPunchCache;
 	int Health;
 	int TeamID;
 	int Fov;
@@ -57,13 +55,11 @@ public:
 	bool GetCameraPos();
 	bool GetWeaponName();
 	bool GetShotsFired();
-	bool GetAimPunchAngle();
 	bool GetHealth();
 	bool GetTeamID();
 	bool GetFov();
 	bool GetSpotted();
 	bool GetFFlags();
-	bool GetAimPunchCache();
 
 	constexpr bool HasFlag(const Flags Flag) const noexcept {
 		return fFlags & (int)Flag;

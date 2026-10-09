@@ -114,8 +114,6 @@ namespace Offset
 		DWORD hActiveWeapon = 0x60;   // CPlayer_WeaponServices::m_hActiveWeapon
 		DWORD iShotsFired = 0x1EB4;
 		DWORD flFlashDuration = 0x1510;
-		DWORD aimPunchAngle = 0x1714; // STALE: removed from schema (now CCSPlayer_AimPunchServices), RCS will not work
-		DWORD aimPunchCache = 0x1738; // STALE: see above
 		DWORD iIDEntIndex = 0x36DC;
 		DWORD iTeamNum = 0x3E7;
 		DWORD CameraServices = 0x1328;
@@ -143,13 +141,15 @@ namespace Offset
 
 	namespace Signatures
 	{
-		const std::string GlobalVars = "48 89 0D ?? ?? ?? ?? 48 89 41";
+		const std::string GlobalVars = "48 8B 0D ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 48 85 D2 48 8D 05";
 		const std::string ViewMatrix = "48 8D 0D ?? ?? ?? ?? 48 C1 E0 06";
 		const std::string ViewAngles = "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 33 C9 C7 05";
 		const std::string EntityList = "48 8B 0D ?? ?? ?? ?? 48 89 7C 24 ?? 8B FA C1";
 		const std::string LocalPlayerController = "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 4F";
 		const std::string ForceJump = "48 8D 05 ?? ?? ?? ?? 49 89 43 ?? 48 8B DA";
 		const std::string LocalPlayerPawn = "48 8D 05 ?? ?? ?? ?? C3 CC CC CC CC CC CC CC CC 48 83 EC ?? 8B 0D";
+		const std::string LevelInit = "40 55 56 41 56 48 8D 6C 24 90 48 81 EC 70 01 00";
+		const std::string CreateMove = "85 D2 0F 85 ? ? ? ? 48 8B C4 44 88 40 18 89";
 	}
 
 	bool UpdateOffsets();

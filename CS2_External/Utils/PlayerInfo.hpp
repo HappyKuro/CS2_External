@@ -4,8 +4,8 @@
 #include <cstdio>
 #include <string>
 #include <vector>
-#include "../Entity.h"
-#include "../MenuConfig.hpp"
+#include "Game/Entity.h"
+#include "Config/MenuConfig.hpp"
 #include "Debug.hpp"
 
 // Scoreboard-style table of everything that can be read from the game itself:

@@ -1,4 +1,4 @@
-#include "TriggerBot.h"
+#include "Features/TriggerBot.h"
 
 void TriggerBot::Run(const CEntity& LocalEntity)
 {
@@ -23,7 +23,7 @@ void TriggerBot::Run(const CEntity& LocalEntity)
 
 	bool AllowShoot = false;
 
-	if (MenuConfig::TeamCheck)
+	if (MenuConfig::TeamCheck && !MenuConfig::DeathmatchMode)
 		AllowShoot = LocalEntity.Pawn.TeamID != Entity.Pawn.TeamID && Entity.Pawn.Health > 0;
 	else
 		AllowShoot = Entity.Pawn.Health > 0;

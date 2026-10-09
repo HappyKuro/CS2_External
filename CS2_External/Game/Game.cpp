@@ -1,4 +1,4 @@
-#include "Game.h"
+#include "Game/Game.h"
 
 bool CGame::InitAddress()
 {
@@ -74,20 +74,16 @@ bool CGame::SetViewAngle(float Yaw, float Pitch)
 		return false;
 	Vec2 Angle{ Pitch,Yaw };
 
-	// Same target the game uses (CCSGOInput::GetViewAngles): the last queued user command if there is
-	// one, otherwise the input object's own view angles.
-	DWORD64 Target = this->Address.ViewAngle;
-	DWORD64 Input = this->Address.ViewAngle - Offset::Input.ViewAngles;
-	int Count = 0;
-	DWORD64 Commands = 0;
-	if (ProcessMgr.ReadMemory<int>(Input + Offset::Input.CommandCount, Count) && Count > 0 && Count < 256 &&
-		ProcessMgr.ReadMemory<DWORD64>(Input + Offset::Input.CommandData, Commands) && Commands != 0)
-		Target = Commands + (DWORD64)Offset::Input.CommandStride * (Count - 1) + Offset::Input.CommandAngles;
+	// The persistent view angles (what the next frame's commands are built from)...
+	bool Ok = ProcessMgr.WriteMemory<Vec2>(this->Address.ViewAngle, Angle);
 
-	if (!ProcessMgr.WriteMemory<Vec2>(Target, Angle))
-		return false;
+	// ...and the command already queued this frame, so the change also applies to it right away.
+	// Writing only the command lasts a single frame.
+	DWORD64 Command = this->LastCommandAngles();
+	if (Command != 0)
+		ProcessMgr.WriteMemory<Vec2>(Command, Angle);
 
-	return true;
+	return Ok;
 }
 
 bool CGame::SetForceJump(int value)
@@ -98,4 +94,33 @@ bool CGame::SetForceJump(int value)
 		return false;
 
 	return true;
+}
+
+DWORD64 CGame::LastCommandAngles()
+{
+	if (this->Address.ViewAngle == 0)
+		return 0;
+
+	DWORD64 Input = this->Address.ViewAngle - Offset::Input.ViewAngles;
+	int Count = 0;
+	DWORD64 Commands = 0;
+	if (ProcessMgr.ReadMemory<int>(Input + Offset::Input.CommandCount, Count) && Count > 0 && Count < 256 &&
+		ProcessMgr.ReadMemory<DWORD64>(Input + Offset::Input.CommandData, Commands) && Commands != 0)
+		return Commands + (DWORD64)Offset::Input.CommandStride * (Count - 1) + Offset::Input.CommandAngles;
+	return 0;
+}
+
+DWORD64 CGame::ViewAngleTarget()
+{
+	// The persistent view angles. Reading these (instead of the last queued command, which is rebuilt every frame
+	// and therefore changes identity) gives a stable "current angle" for the aim.
+	return this->Address.ViewAngle;
+}
+
+bool CGame::GetInputAngles(Vec3& Out)
+{
+	DWORD64 Target = this->ViewAngleTarget();
+	if (Target == 0)
+		return false;
+	return ProcessMgr.ReadMemory<Vec3>(Target, Out);
 }

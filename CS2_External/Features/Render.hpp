@@ -4,7 +4,7 @@
 #include <math.h>
 #include <chrono>
 #include <map>
-#include "Entity.h"
+#include "Game/Entity.h"
 #include "Utils/Format.hpp"
 
 namespace Render
@@ -12,7 +12,12 @@ namespace Render
 	void DrawFovCircle(const CEntity& LocalEntity)
 	{
 		Vec2 CenterPoint = Gui.Window.Size / 2;
-		float Radius = tan(AimControl::AimFov / 180.f * M_PI / 2.f) / tan(LocalEntity.Pawn.Fov / 180.f * M_PI / 2.f) * Gui.Window.Size.x;
+		// Angular radius AimFov (degrees) -> pixels, using the real projection scale.
+		float Focal = gGame.View.FocalX();
+		if (Focal < 0.1f || Focal > 10.f)
+			return;
+		float Angle = std::fmin(AimControl::AimFov, 85.f) * (float)M_PI / 180.f;
+		float Radius = Gui.Window.Size.x / 2.f * Focal * std::tan(Angle);
 		Gui.Circle(CenterPoint, Radius, MenuConfig::AimFovRangeColor, 1);
 	}
 
@@ -35,12 +40,15 @@ namespace Render
 		Vec2 LineEndPoint[2];
 		Vec2 Pos = Gui.Window.Size / 2;
 
-		radian = (LocalEntity.Pawn.Fov / 2) * M_PI / 180;
+		float Focal = gGame.View.FocalX();
+		if (Focal < 0.1f || Focal > 10.f)
+			return;
 
 		LineEndPoint[0].y = Pos.y - Size;
 		LineEndPoint[1].y = LineEndPoint[0].y;
 
-		Length = Size * tan(radian);
+		// tan(half FOV) = 1 / Focal
+		Length = Size / Focal;
 
 		LineEndPoint[0].x = Pos.x - Length;
 		LineEndPoint[1].x = Pos.x + Length;
@@ -60,7 +68,10 @@ namespace Render
 	{
 		Vec2 Pos;
 		Pos.x = Gui.Window.Size.x / 2;
-		Pos.y = Gui.Window.Size.y / 2.0f - Gui.Window.Size.y / (2.0f * std::sin(LocalEntity.Pawn.Fov * M_PI / 180.0f) / std::sin(90.0f * M_PI / 180.0f)) * std::sin(LocalEntity.Pawn.ViewAngle.x * M_PI / 180.0f) / std::sin(90.0f * M_PI / 180.0f);
+		// Horizon height for the current pitch (pitch > 0 = looking down, the horizon moves up).
+		float FocalY = gGame.View.FocalY();
+		float Pitch = std::fmax(-85.f, std::fmin(85.f, LocalEntity.Pawn.ViewAngle.x));
+		Pos.y = Gui.Window.Size.y / 2.0f - Gui.Window.Size.y / 2.0f * FocalY * std::tan(Pitch * (float)M_PI / 180.f);
 
 		// left
 		Gui.RectangleFilled(Vec2{ Pos.x - 21, Pos.y - 1 }, Vec2{ 17, 3}, Color & IM_COL32_A_MASK);
@@ -74,7 +85,9 @@ namespace Render
 	// ·½¿ò»æÖÆ
 	ImVec4 Get2DBox(const CEntity& Entity)
 	{
-		BoneJointPos Head = Entity.GetBone().BonePosList[BONEINDEX::head];
+		if (Entity.Pawn.BoneData.BonePosList.size() < 30)
+			return ImVec4{ 0, 0, 0, 0 };
+		BoneJointPos Head = Entity.Pawn.BoneData.BonePosList[BONEINDEX::head];
 
 		Vec2 Size, Pos;
 		Size.y = (Entity.Pawn.ScreenPos.y - Head.ScreenPos.y) * 1.09;
@@ -88,13 +101,18 @@ namespace Render
 	// ¹Ç÷À»æÖÆ
 	void DrawBone(const CEntity& Entity, ImColor Color, float Thickness)
 	{
+		// GetBone() returns a copy of the whole bone vector; use the entity's own list (and never index past it).
+		const auto& Bones = Entity.Pawn.BoneData.BonePosList;
+		if (Bones.size() < 30)
+			return;
+
 		BoneJointPos Previous, Current;
-		for (auto i : BoneJointList::List)
+		for (const auto& i : BoneJointList::List)
 		{
 			Previous.Pos = Vec3(0, 0, 0);
 			for (auto Index : i)
 			{
-				Current = Entity.GetBone().BonePosList[Index];
+				Current = Bones[Index];
 				if (Previous.Pos == Vec3(0, 0, 0))
 				{
 					Previous = Current;
@@ -116,7 +134,9 @@ namespace Render
 	{
 		Vec2 StartPoint, EndPoint;
 		Vec3 Temp;
-		BoneJointPos Head = Entity.GetBone().BonePosList[BONEINDEX::head];
+		if (Entity.Pawn.BoneData.BonePosList.size() < 30)
+			return;
+		BoneJointPos Head = Entity.Pawn.BoneData.BonePosList[BONEINDEX::head];
 
 		StartPoint = Head.ScreenPos;
 
@@ -135,10 +155,14 @@ namespace Render
 	// 2D¹Ç÷À¿ò»æÖÆ
 	ImVec4 Get2DBoneRect(const CEntity& Entity)
 	{
-		Vec2 Min, Max, Size;
-		Min = Max = Entity.GetBone().BonePosList[0].ScreenPos;
+		const auto& Bones = Entity.Pawn.BoneData.BonePosList;
+		if (Bones.empty())
+			return ImVec4{ 0, 0, 0, 0 };
 
-		for (auto &BoneJoint : Entity.GetBone().BonePosList)
+		Vec2 Min, Max, Size;
+		Min = Max = Bones[0].ScreenPos;
+
+		for (const auto& BoneJoint : Bones)
 		{
 			if (!BoneJoint.IsVisible)
 				continue;

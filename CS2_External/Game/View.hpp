@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include "OS-ImGui/OS-ImGui.h"
 
 // ”Œœ∑ ”Õº¿‡
@@ -6,6 +7,18 @@ class CView
 {
 public:
 	float Matrix[4][4]{};
+
+	// Row 0 / row 1 of the view-projection matrix are (right, up) scaled by the projection, so their length is
+	// 1 / tan(half FOV): horizontal for x, vertical for y. Independent of any FOV value read from the game.
+	float FocalX() const
+	{
+		return std::sqrt(Matrix[0][0] * Matrix[0][0] + Matrix[0][1] * Matrix[0][1] + Matrix[0][2] * Matrix[0][2]);
+	}
+
+	float FocalY() const
+	{
+		return std::sqrt(Matrix[1][0] * Matrix[1][0] + Matrix[1][1] * Matrix[1][1] + Matrix[1][2] * Matrix[1][2]);
+	}
 
 	bool WorldToScreen(const Vec3& Pos, Vec2& ToPos)
 	{

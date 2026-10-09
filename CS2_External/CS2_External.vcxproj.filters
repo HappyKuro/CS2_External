@@ -78,37 +78,37 @@
     <ClInclude Include="Utils\ProcessManager.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="View.hpp">
+    <ClInclude Include="Game\View.hpp">
       <Filter>Cheats\View</Filter>
     </ClInclude>
-    <ClInclude Include="Entity.h">
+    <ClInclude Include="Game\Entity.h">
       <Filter>Cheats\Data</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="Game\Game.h">
       <Filter>Cheats\Data</Filter>
     </ClInclude>
-    <ClInclude Include="Cheats.h">
+    <ClInclude Include="Features\Cheats.h">
       <Filter>Cheats</Filter>
     </ClInclude>
-    <ClInclude Include="Bone.h">
+    <ClInclude Include="Game\Bone.h">
       <Filter>Cheats\Data</Filter>
     </ClInclude>
-    <ClInclude Include="Render.hpp">
+    <ClInclude Include="Features\Render.hpp">
       <Filter>Cheats</Filter>
     </ClInclude>
-    <ClInclude Include="Bunnyhop.hpp">
+    <ClInclude Include="Features\Bunnyhop.hpp">
       <Filter>Cheats</Filter>
     </ClInclude>
-    <ClInclude Include="Offsets.h">
+    <ClInclude Include="Game\Offsets.h">
       <Filter>Cheats\Offsets</Filter>
     </ClInclude>
-    <ClInclude Include="MenuConfig.hpp">
+    <ClInclude Include="Config\MenuConfig.hpp">
       <Filter>Cheats\MenuConfig</Filter>
     </ClInclude>
     <ClInclude Include="Radar\Radar.h">
       <Filter>Cheats\Radar</Filter>
     </ClInclude>
-    <ClInclude Include="TriggerBot.h">
+    <ClInclude Include="Features\TriggerBot.h">
       <Filter>Cheats</Filter>
     </ClInclude>
     <ClInclude Include="Utils\ConfigMenu.hpp">
@@ -117,19 +117,40 @@
     <ClInclude Include="Utils\ConfigSaver.hpp">
       <Filter>Utils\ConfigSaver</Filter>
     </ClInclude>
-    <ClInclude Include="Aimbot.hpp">
+    <ClInclude Include="Features\AimBot.hpp">
       <Filter>Cheats</Filter>
     </ClInclude>
     <ClInclude Include="Utils\Format.hpp">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="GlobalVars.h">
+    <ClInclude Include="Utils\Debug.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Overlays.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\PlayerInfo.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\HitSound.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\SigScan.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Avatar.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\TextScale.hpp">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\GlobalVars.h">
       <Filter>Cheats\Data</Filter>
     </ClInclude>
-    <ClInclude Include="Globals.hpp">
+    <ClInclude Include="Game\Globals.hpp">
       <Filter>Cheats</Filter>
     </ClInclude>
-    <ClInclude Include="AntiFlashbang.hpp">
+    <ClInclude Include="Features\AntiFlashbang.hpp">
       <Filter>Cheats</Filter>
     </ClInclude>
   </ItemGroup>
@@ -167,19 +188,19 @@
     <ClCompile Include="main.cpp">
       <Filter>Entry</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
+    <ClCompile Include="Game\Game.cpp">
       <Filter>Cheats\Data</Filter>
     </ClCompile>
-    <ClCompile Include="Entity.cpp">
+    <ClCompile Include="Game\Entity.cpp">
       <Filter>Cheats\Data</Filter>
     </ClCompile>
-    <ClCompile Include="Cheats.cpp">
+    <ClCompile Include="Features\Cheats.cpp">
       <Filter>Cheats</Filter>
     </ClCompile>
-    <ClCompile Include="Bone.cpp">
+    <ClCompile Include="Game\Bone.cpp">
       <Filter>Cheats\Data</Filter>
     </ClCompile>
-    <ClCompile Include="Offsets.cpp">
+    <ClCompile Include="Game\Offsets.cpp">
       <Filter>Cheats\Offsets</Filter>
     </ClCompile>
     <ClCompile Include="Utils\MemorySearch.cpp">
@@ -188,7 +209,7 @@
     <ClCompile Include="Radar\Radar.cpp">
       <Filter>Cheats\Radar</Filter>
     </ClCompile>
-    <ClCompile Include="TriggerBot.cpp">
+    <ClCompile Include="Features\TriggerBot.cpp">
       <Filter>Cheats</Filter>
     </ClCompile>
     <ClCompile Include="Utils\ConfigMenu.cpp">
@@ -197,7 +218,7 @@
     <ClCompile Include="Utils\ConfigSaver.cpp">
       <Filter>Utils\ConfigSaver</Filter>
     </ClCompile>
-    <ClCompile Include="GlobalVars.cpp">
+    <ClCompile Include="Game\GlobalVars.cpp">
       <Filter>Cheats\Data</Filter>
     </ClCompile>
   </ItemGroup>
